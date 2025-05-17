@@ -52,7 +52,7 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEther
     RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Client data is not a valid LivoxMid360Node.");
     return;
   }
-  this->ConvertToPointCloud2(data);
+  node->ConvertToPointCloud2(data);
 }
 
 void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
@@ -166,6 +166,7 @@ void LivoxMid360Node::PublishPointCloudData()
   std::lock_guard<std::mutex> lock(data_mutex_);
   if (latest_pc_msg_) {
     ptcloud_pub_->publish(*latest_pc_msg_);
+    latest_pc_msg_.reset(); // Reset the pointer after publishing
   }
   else {
     RCLCPP_WARN(this->get_logger(), "No point cloud data available to publish.");
@@ -185,7 +186,7 @@ void ImuCallback(uint32_t handle, const uint8_t dev_type,  LivoxLidarEthernetPac
     return;
   }
 
-  this->ConvertToIMUdata(data);
+  node->ConvertToIMUdata(data);
 }
 
 void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)
@@ -213,6 +214,7 @@ void LivoxMid360Node::PublishImuData()
   std::lock_guard<std::mutex> lock(data_mutex_);
   if (latest_imu_msg_) {
     imu_pub_->publish(*latest_imu_msg_);
+    latest_imu_msg_.reset(); // Reset the pointer after publishing
   }
   else {
     RCLCPP_WARN(this->get_logger(), "No IMU data available to publish.");
