@@ -199,7 +199,7 @@ bool LivoxMid360Node::InitSDK()
 
   // OPTIONAL, to get imu data via 'ImuDataCallback'
   // some lidar types DO NOT contain an imu component
-  SetLivoxLidarImuDataCallback(ImuDataCallback, this);
+  SetLivoxLidarImuDataCallback(ImuCallback, this);
   
   //SetLivoxLidarInfoCallback(LivoxLidarPushMsgCallback, nullptr);
   
