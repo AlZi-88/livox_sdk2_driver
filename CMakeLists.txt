@@ -28,7 +28,6 @@ ament_target_dependencies(
 )
 
 target_link_libraries(livox_mid360
-  ${LIVOX_LIDAR_SDK_STATIC}
   ${LIVOX_LIDAR_SDK_SHARED}
 )
 
