@@ -25,10 +25,10 @@ LivoxMid360Node::LivoxMid360Node(): Node("livox_mid360_node")
 LivoxMid360Node::~LivoxMid360Node()
 {
   // Uninitialize the SDK
-  LivoxLidarSdkUninit();
+  //LivoxLidarSdkUninit();
 }
 
-void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEthernetPacket* data, void* client_data)
+/*void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEthernetPacket* data, void* client_data)
 {
   if (data == nullptr) {
     RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Received null data.");
@@ -182,26 +182,26 @@ void LivoxMid360Node::PublishImuData(LivoxLidarEthernetPacket* data)
 
     this->imu_pub_->publish(imu_msg);
   }
-}
+}*/
 
 
 bool LivoxMid360Node::InitSDK()
 {
   RCLCPP_INFO(this->get_logger(), "Initializing Livox SDK...");
   // Initialize the SDK and set up the device
-  if (!LivoxLidarSdkInit(config_file_path_.c_str())) {
+  /*if (!LivoxLidarSdkInit(config_file_path_.c_str())) {
     RCLCPP_ERROR(this->get_logger(), "Failed to initialize Livox SDK.");
     LivoxLidarSdkUninit();
     return false;
-  }
+  }*/
   RCLCPP_INFO(this->get_logger(), "Livox SDK initialized successfully.");
 
   // REQUIRED, to get point cloud data via 'PointCloudCallback'
-  SetLivoxLidarPointCloudCallBack(PointCloudCallback, this);
+  //SetLivoxLidarPointCloudCallBack(PointCloudCallback, this);
 
   // OPTIONAL, to get imu data via 'ImuDataCallback'
   // some lidar types DO NOT contain an imu component
-  SetLivoxLidarImuDataCallback(ImuCallback, this);
+  //SetLivoxLidarImuDataCallback(ImuCallback, this);
   
   //SetLivoxLidarInfoCallback(LivoxLidarPushMsgCallback, nullptr);
   

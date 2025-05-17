@@ -4,8 +4,8 @@
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 // #include Livox SDK headers
-#include "livox_lidar_def.h"
-#include "livox_lidar_api.h"
+//#include "livox_lidar_def.h"
+//#include "livox_lidar_api.h"
 
 class LivoxMid360Node : public rclcpp::Node
 {
@@ -14,8 +14,8 @@ public:
 
     ~LivoxMid360Node();
 
-    void PublishImuData(LivoxLidarEthernetPacket* data);
-    void PublishPointCloudData(LivoxLidarEthernetPacket* data);
+    //void PublishImuData(LivoxLidarEthernetPacket* data);
+    //void PublishPointCloudData(LivoxLidarEthernetPacket* data);
   
 private:
 
