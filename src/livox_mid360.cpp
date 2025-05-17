@@ -1,4 +1,4 @@
-#include "include/livox_mid360.hpp"
+#include "livox_sdk2_driver/livox_mid360.hpp"
 
 LivoxMid360Node::LivoxMid360Node(): Node("livox_mid360_node")
 {
