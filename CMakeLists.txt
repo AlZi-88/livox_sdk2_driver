@@ -13,12 +13,13 @@ find_package(sensor_msgs REQUIRED)
 # Link against Livox SDK
 find_library(LIVOX_LIDAR_SDK_STATIC livox_lidar_sdk_static PATHS /usr/local/lib)
 find_library(LIVOX_LIDAR_SDK_SHARED livox_lidar_sdk_shared PATHS /usr/local/lib)
-include_directories(/usr/local/include)
 
 add_executable(livox_mid360 src/main.cpp src/livox_mid360.cpp)
 target_include_directories(livox_mid360 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+  /usr/local/include
+)
 target_compile_features(livox_mid360 PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 ament_target_dependencies(
   livox_mid360
