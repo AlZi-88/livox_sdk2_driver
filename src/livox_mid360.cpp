@@ -8,14 +8,26 @@ LivoxMid360Node::LivoxMid360Node(): Node("livox_mid360_node")
   this->declare_parameter<std::string>("configFilePath", "/home/drone/ros2_drone_ws/src/livox_sdk2_driver/config/MID360_config.json");
   this->declare_parameter<std::string>("pointcloud_topic", "livox/pt_cloud");
   this->declare_parameter<std::string>("imu_topic", "livox/imu");
+  this->declare_parameter("ptcloud_publish_rate", 10.0); //Hz
+  this->declare_parameter("imu_publish_rate", 50.0); //Hz
+
 
   // Get parameters
   config_file_path_ = this->get_parameter("configFilePath").as_string();
   pointcloud_topic_ = this->get_parameter("pointcloud_topic").as_string();
   imu_topic_ = this->get_parameter("imu_topic").as_string();
+  pc_freq_ = this->get_parameter("ptcloud_publish_rate").as_double();
+  imu_freq_ = this->get_parameter("imu_publish_rate").as_double();
 
   ptcloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(pointcloud_topic_, 10);
   imu_pub_ = this->create_publisher<sensor_msgs::msg::Imu>(imu_topic_, 10);
+
+  pc_timer_ = this->create_wall_timer(
+    std::chrono::milliseconds(static_cast<int>(1000.0 / pc_freq_)),
+    std::bind(&LivoxMid360Node::PublishPointCloudData, this));
+  imu_timer_ = this->create_wall_timer(
+    std::chrono::milliseconds(static_cast<int>(1000.0 / imu_freq_)),
+    std::bind(&LivoxMid360Node::PublishImuData, this));
 
   // Initialize the Livox-SDK2
   InitSDK();
@@ -40,10 +52,10 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEther
     RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Client data is not a valid LivoxMid360Node.");
     return;
   }
-  node->PublishPointCloudData(data);
+  this->ConvertToPointCloud2(data);
 }
 
-void LivoxMid360Node::PublishPointCloudData(LivoxLidarEthernetPacket* data)
+void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
 {  // Process point cloud data
   sensor_msgs::msg::PointCloud2 pcl_msg;
 
@@ -145,9 +157,20 @@ void LivoxMid360Node::PublishPointCloudData(LivoxLidarEthernetPacket* data)
       ++iterReflectivity;
     }
   }  
-  this->ptcloud_pub_->publish(pcl_msg);
+  std::lock_guard<std::mutex> lock(data_mutex_);
+  latest_pc_msg_ = std::make_shared<sensor_msgs::msg::PointCloud2>(pcl_msg);
   }
 
+void LivoxMid360Node::PublishPointCloudData()
+{
+  std::lock_guard<std::mutex> lock(data_mutex_);
+  if (latest_pc_msg_) {
+    ptcloud_pub_->publish(*latest_pc_msg_);
+  }
+  else {
+    RCLCPP_WARN(this->get_logger(), "No point cloud data available to publish.");
+  }
+}
 void ImuCallback(uint32_t handle, const uint8_t dev_type,  LivoxLidarEthernetPacket* data, void* client_data)
 {
   if (data == nullptr) {
@@ -162,10 +185,10 @@ void ImuCallback(uint32_t handle, const uint8_t dev_type,  LivoxLidarEthernetPac
     return;
   }
 
-  node->PublishImuData(data);
+  this->ConvertToIMUdata(data);
 }
 
-void LivoxMid360Node::PublishImuData(LivoxLidarEthernetPacket* data)
+void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)
 {
   if (data->data_type == kLivoxLidarImuData) {
     LivoxLidarImuRawPoint* imu_data = (LivoxLidarImuRawPoint*)data->data;
@@ -180,10 +203,21 @@ void LivoxMid360Node::PublishImuData(LivoxLidarEthernetPacket* data)
     imu_msg.linear_acceleration.y = imu_data->acc_y;
     imu_msg.linear_acceleration.z = imu_data->acc_z;
 
-    this->imu_pub_->publish(imu_msg);
+    std::lock_guard<std::mutex> lock(data_mutex_);
+    latest_imu_msg_ = std::make_shared<sensor_msgs::msg::Imu>(imu_msg);
   }
 }
 
+void LivoxMid360Node::PublishImuData()
+{
+  std::lock_guard<std::mutex> lock(data_mutex_);
+  if (latest_imu_msg_) {
+    imu_pub_->publish(*latest_imu_msg_);
+  }
+  else {
+    RCLCPP_WARN(this->get_logger(), "No IMU data available to publish.");
+  }
+}
 
 bool LivoxMid360Node::InitSDK()
 {
