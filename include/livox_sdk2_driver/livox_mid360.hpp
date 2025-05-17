@@ -14,12 +14,13 @@ public:
 
     ~LivoxMid360Node();
 
+    void PublishImuData(LivoxLidarEthernetPacket* data);
+    void PublishPointCloudData(LivoxLidarEthernetPacket* data);
   
 private:
 
     bool InitSDK();
-    void PublishImuData(LivoxLidarEthernetPacket* data);
-    void PublishPointCloudData(LivoxLidarEthernetPacket* data);
+
 
     std::string pointcloud_topic_;
     std::string imu_topic_;
