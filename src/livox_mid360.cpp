@@ -186,7 +186,7 @@ void ImuCallback(uint32_t handle, const uint8_t dev_type,  LivoxLidarEthernetPac
     return;
   }
 
-  node->ConvertToIMUdata(data);
+  node->ConvertToIMUData(data);
 }
 
 void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)
