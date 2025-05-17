@@ -1,5 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
-#include "livox_mid360_node.hpp"
+#include "livox_mid360.hpp"
 
 int main(int argc, char ** argv)
 {
