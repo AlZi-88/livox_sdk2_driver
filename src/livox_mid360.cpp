@@ -33,7 +33,17 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEther
     RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Received null data.");
     return;
   }
-  // Process point cloud data
+  // Register client
+  auto* node = static_cast<LivoxMid360Node*>(client_data);
+  if (node == nullptr) {
+    RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Client data is not a valid LivoxMid360Node.");
+    return;
+  }
+  node->PublishPointCloudData(data);
+}
+
+void LivoxMid360Node::PublishPointCloudData(LivoxLidarEthernetPacket* data)
+{  // Process point cloud data
   sensor_msgs::msg::PointCloud2 pcl_msg;
 
   //Modifier to describe what the fields are.
@@ -47,10 +57,10 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEther
     LivoxLidarCartesianHighRawPoint *p_point_data = (LivoxLidarCartesianHighRawPoint *)data->data;
     pcl_msg.width = data->dot_num;
     modifier.setPointCloud2Fields(4,
-      "x", 1, sensor_msgs::PointField::INT32,
-      "y", 1, sensor_msgs::PointField::INT32,
-      "z", 1, sensor_msgs::PointField::INT32,
-      "intensity", 1, sensor_msgs::PointField::UINT8);
+      "x", 1, sensor_msgs::msg::PointField::INT32,
+      "y", 1, sensor_msgs::msg::PointField::INT32,
+      "z", 1, sensor_msgs::msg::PointField::INT32,
+      "intensity", 1, sensor_msgs::msg::PointField::UINT8);
     pcl_msg.is_dense = true;
     pcl_msg.point_step = 13;
     pcl_msg.row_step = pcl_msg.point_step * pcl_msg.width;
@@ -79,10 +89,10 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEther
     LivoxLidarCartesianLowRawPoint *p_point_data = (LivoxLidarCartesianLowRawPoint *)data->data;
     pcl_msg.width = data->dot_num;
     modifier.setPointCloud2Fields(4,
-      "x", 1, sensor_msgs::PointField::INT16,
-      "y", 1, sensor_msgs::PointField::INT16,
-      "z", 1, sensor_msgs::PointField::INT16,
-      "intensity", 1, sensor_msgs::PointField::UINT8);
+      "x", 1, sensor_msgs::msg::PointField::INT16,
+      "y", 1, sensor_msgs::msg::PointField::INT16,
+      "z", 1, sensor_msgs::msg::PointField::INT16,
+      "intensity", 1, sensor_msgs::msg::PointField::UINT8);
     pcl_msg.is_dense = true;
     pcl_msg.point_step = 7;
     pcl_msg.row_step = pcl_msg.point_step * pcl_msg.width;
@@ -108,10 +118,10 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEther
     LivoxLidarSpherPoint* p_point_data = (LivoxLidarSpherPoint *)data->data;
     pcl_msg.width = data->dot_num;
     modifier.setPointCloud2Fields(4,
-      "depth", 1, sensor_msgs::PointField::UINT32,
-      "theta", 1, sensor_msgs::PointField::UINT16,
-      "phi", 1, sensor_msgs::PointField::UINT16,
-      "reflectivity", 1, sensor_msgs::PointField::UINT8);
+      "depth", 1, sensor_msgs::msg::PointField::UINT32,
+      "theta", 1, sensor_msgs::msg::PointField::UINT16,
+      "phi", 1, sensor_msgs::msg::PointField::UINT16,
+      "reflectivity", 1, sensor_msgs::msg::PointField::UINT8);
     pcl_msg.is_dense = true;
     pcl_msg.point_step = 9;
     pcl_msg.row_step = pcl_msg.point_step * pcl_msg.width;
@@ -143,19 +153,31 @@ void ImuCallback(uint32_t handle, const uint8_t dev_type,  LivoxLidarEthernetPac
     RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Received null IMU data.");
     return;
   }
+  // Register client
+  auto* node = static_cast<LivoxMid360Node*>(client_data);
 
+  if (node == nullptr) {
+    RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Client data is not a valid LivoxMid360Node.");
+    return;
+  }
+
+  node->PublishImuData(data);
+}
+
+void LivoxMid360Node::PublishImuData(LivoxLidarEthernetPacket* data)
+{
   if (data->data_type == kLivoxLidarImuData) {
     LivoxLidarImuRawPoint* imu_data = (LivoxLidarImuRawPoint*)data->data;
     // Process IMU data
     sensor_msgs::msg::Imu imu_msg;
     imu_msg.header.stamp = rclcpp::Clock().now();
     imu_msg.header.frame_id = "mid360_imu_frame";
-    imu_msg.angular_velocity.x = imu_data.gyro_x;
-    imu_msg.angular_velocity.y = imu_data.gyro_y;
-    imu_msg.angular_velocity.z = imu_data.gyro_z;
-    imu_msg.linear_acceleration.x = imu_data.acc_x;
-    imu_msg.linear_acceleration.y = imu_data.acc_y;
-    imu_msg.linear_acceleration.z = imu_data.acc_z;
+    imu_msg.angular_velocity.x = imu_data->gyro_x;
+    imu_msg.angular_velocity.y = imu_data->gyro_y;
+    imu_msg.angular_velocity.z = imu_data->gyro_z;
+    imu_msg.linear_acceleration.x = imu_data->acc_x;
+    imu_msg.linear_acceleration.y = imu_data->acc_y;
+    imu_msg.linear_acceleration.z = imu_data->acc_z;
 
     this->imu_pub_->publish(imu_msg);
   }
@@ -173,11 +195,11 @@ bool LivoxMid360Node::InitSDK()
   RCLCPP_INFO(this->get_logger(), "Livox SDK initialized successfully.");
 
   // REQUIRED, to get point cloud data via 'PointCloudCallback'
-  SetLivoxLidarPointCloudCallBack(PointCloudCallback, nullptr);
+  SetLivoxLidarPointCloudCallBack(PointCloudCallback, this);
 
   // OPTIONAL, to get imu data via 'ImuDataCallback'
   // some lidar types DO NOT contain an imu component
-  SetLivoxLidarImuDataCallback(ImuDataCallback, nullptr);
+  SetLivoxLidarImuDataCallback(ImuDataCallback, this);
   
   //SetLivoxLidarInfoCallback(LivoxLidarPushMsgCallback, nullptr);
   

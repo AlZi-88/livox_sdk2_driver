@@ -10,8 +10,7 @@
 class LivoxMid360Node : public rclcpp::Node
 {
 public:
-    LivoxMid360Node()
-    : Node("livox_mid360_node");
+    LivoxMid360Node();
 
     ~LivoxMid360Node();
 
@@ -19,6 +18,8 @@ public:
 private:
 
     bool InitSDK();
+    void PublishImuData(LivoxLidarEthernetPacket* data);
+    void PublishPointCloudData(LivoxLidarEthernetPacket* data);
 
     std::string pointcloud_topic_;
     std::string imu_topic_;
