@@ -68,10 +68,10 @@ void LivoxMid360Node::PublishPointCloudData(LivoxLidarEthernetPacket* data)
     pcl_msg.data.resize(pcl_msg.row_step);
 
     //Iterators for PointCloud msg
-    sensor_msgs::PointCloud2Iterator<float> iterX(pcl_msg, "x");
-    sensor_msgs::PointCloud2Iterator<float> iterY(pcl_msg, "y");
-    sensor_msgs::PointCloud2Iterator<float> iterZ(pcl_msg, "z");
-    sensor_msgs::PointCloud2Iterator<float> iterIntensity(pcl_msg, "intensity");
+    sensor_msgs::PointCloud2Iterator<int32_t> iterX(pcl_msg, "x");
+    sensor_msgs::PointCloud2Iterator<int32_t> iterY(pcl_msg, "y");
+    sensor_msgs::PointCloud2Iterator<int32_t> iterZ(pcl_msg, "z");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iterIntensity(pcl_msg, "intensity");
   
     for (uint32_t i = 0; i < data->dot_num; i++) {
       *iterX = (p_point_data[i].x);
@@ -99,10 +99,10 @@ void LivoxMid360Node::PublishPointCloudData(LivoxLidarEthernetPacket* data)
     pcl_msg.row_step = pcl_msg.point_step * pcl_msg.width;
     pcl_msg.data.resize(pcl_msg.row_step);
     //Iterators for PointCloud msg
-    sensor_msgs::PointCloud2Iterator<float> iterX(pcl_msg, "x");
-    sensor_msgs::PointCloud2Iterator<float> iterY(pcl_msg, "y");
-    sensor_msgs::PointCloud2Iterator<float> iterZ(pcl_msg, "z");
-    sensor_msgs::PointCloud2Iterator<float> iterIntensity(pcl_msg, "intensity");
+    sensor_msgs::PointCloud2Iterator<int16_t> iterX(pcl_msg, "x");
+    sensor_msgs::PointCloud2Iterator<int16_t> iterY(pcl_msg, "y");
+    sensor_msgs::PointCloud2Iterator<int16_t> iterZ(pcl_msg, "z");
+    sensor_msgs::PointCloud2Iterator<int8_t> iterIntensity(pcl_msg, "intensity");
     for (uint32_t i = 0; i < data->dot_num; i++) {
       *iterX = (p_point_data[i].x);
       *iterY = (p_point_data[i].y);
