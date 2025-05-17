@@ -2,6 +2,7 @@
 
 LivoxMid360Node::LivoxMid360Node(): Node("livox_mid360_node")
 {
+  RCLCPP_INFO(this->get_logger(), "Starting LivoxMid360Node setup");
   //this->declare_parameter<std::string>("sensor_ip", "192.168.1.107");
   //this->declare_parameter<std::string>("host_ip", "192.168.1.5");
   this->declare_parameter<std::string>("configFilePath", "/home/drone/ros2_drone_ws/src/livox_sdk2_driver/config/MID360_config.json");
@@ -186,6 +187,7 @@ void LivoxMid360Node::PublishImuData(LivoxLidarEthernetPacket* data)
 
 bool LivoxMid360Node::InitSDK()
 {
+  RCLCPP_INFO(this->get_logger(), "Initializing Livox SDK...");
   // Initialize the SDK and set up the device
   if (!LivoxLidarSdkInit(config_file_path_.c_str())) {
     RCLCPP_ERROR(this->get_logger(), "Failed to initialize Livox SDK.");
