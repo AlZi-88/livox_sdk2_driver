@@ -10,7 +10,12 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
-add_executable(livox_mid360 src/livox_mid360.cpp)
+# Link against Livox SDK
+find_library(LIVOX_LIDAR_SDK_STATIC livox_lidar_sdk_static PATHS /usr/local/lib)
+find_library(LIVOX_LIDAR_SDK_SHARED livox_lidar_sdk_shared PATHS /usr/local/lib)
+include_directories(/usr/local/include)
+
+add_executable(livox_mid360 src/main.cpp src/livox_mid360.cpp)
 target_include_directories(livox_mid360 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
@@ -19,6 +24,11 @@ ament_target_dependencies(
   livox_mid360
   "rclcpp"
   "sensor_msgs"
+)
+
+target_link_libraries(livox_mid360
+  ${LIVOX_LIDAR_SDK_STATIC}
+  ${LIVOX_LIDAR_SDK_SHARED}
 )
 
 install(TARGETS livox_mid360
