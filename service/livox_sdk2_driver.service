@@ -1,5 +1,5 @@
 [Unit]
-Description=ROS 2 Gateway Service
+Description=ROS2 Livox MID-360 Driver node
 After=network.target
 
 [Service]
