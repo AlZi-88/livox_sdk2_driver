@@ -11,6 +11,9 @@ LivoxMid360Node::LivoxMid360Node(): Node("livox_mid360_node")
   this->declare_parameter("ptcloud_publish_rate", 10.0); //Hz
   this->declare_parameter("imu_publish_rate", 50.0); //Hz
 
+  //Parameters of Lidar location
+  this->declare_parameter("lidar_translation", std::vector<double>({0.0, 0.0, 0.0}));
+  this->declare_parameter("lidar_rotation_rpy_deg", std::vector<double>({0.0, 0.0, 0.0}));
 
   // Get parameters
   config_file_path_ = this->get_parameter("configFilePath").as_string();
@@ -18,6 +21,8 @@ LivoxMid360Node::LivoxMid360Node(): Node("livox_mid360_node")
   imu_topic_ = this->get_parameter("imu_topic").as_string();
   pc_freq_ = this->get_parameter("ptcloud_publish_rate").as_double();
   imu_freq_ = this->get_parameter("imu_publish_rate").as_double();
+  lidar_translation_ = this->get_parameter("lidar_translation").as_double_array();
+  lidar_rotation_rpy_deg_ = this->get_parameter("lidar_rotation_rpy_deg").as_double_array();
 
   pt_cloud_data_error_ = false;
   imu_data_error_ = false;
@@ -31,6 +36,32 @@ LivoxMid360Node::LivoxMid360Node(): Node("livox_mid360_node")
   imu_timer_ = this->create_wall_timer(
     std::chrono::milliseconds(static_cast<int>(1000.0 / imu_freq_)),
     std::bind(&LivoxMid360Node::PublishImuData, this));
+
+  static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+
+  geometry_msgs::msg::TransformStamped static_transform;
+  static_transform.header.stamp = this->get_clock()->now();
+  static_transform.header.frame_id = "drone_base_link";
+  static_transform.child_frame_id = "mid360_frame";
+
+  static_transform.transform.translation.x = lidar_translation_[0];
+  static_transform.transform.translation.y = lidar_translation_[1];
+  static_transform.transform.translation.z = lidar_translation_[2]; 
+
+  // Convert RPY degrees to quaternion
+  tf2::Quaternion q;
+  q.setRPY(
+    lidar_rotation_rpy_deg_[0] * M_PI / 180.0, // Roll
+    lidar_rotation_rpy_deg_[1] * M_PI / 180.0, // Pitch
+    lidar_rotation_rpy_deg_[2] * M_PI / 180.0  // Yaw
+  );
+  static_transform.transform.rotation.x = q.x();
+  static_transform.transform.rotation.y = q.y();
+  static_transform.transform.rotation.z = q.z();
+  static_transform.transform.rotation.w = q.w();  
+  
+  // Broadcast the static transform
+  static_broadcaster_->sendTransform(static_transform);
 
   // Initialize the Livox-SDK2
   InitSDK();

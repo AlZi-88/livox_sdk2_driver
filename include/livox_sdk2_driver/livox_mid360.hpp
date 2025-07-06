@@ -3,6 +3,8 @@
 #include "sensor_msgs/msg/point_field.hpp"
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 #include "sensor_msgs/msg/imu.hpp"
+#include "tf2_ros/static_transform_broadcaster.h"
+#include "geometry_msgs/msg/transform_stamped.hpp"
 // #include Livox SDK headers
 #include "livox_lidar_def.h"
 #include "livox_lidar_api.h"
@@ -41,6 +43,8 @@ private:
     double imu_freq_;
     bool pt_cloud_data_error_;
     bool imu_data_error_;
+    std::vector<double> lidar_translation_;
+    std::vector<double> lidar_rotation_rpy_deg_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr ptcloud_pub_;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
 
@@ -55,5 +59,6 @@ private:
 
     MadgwickFilter madgwick_filter_; // Instance of the Madgwick filter for orientation estimation
 
-  // SDK callbacks and helpers...
+    // Transform broadcaster for static transforms
+    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_broadcaster_;
 };
