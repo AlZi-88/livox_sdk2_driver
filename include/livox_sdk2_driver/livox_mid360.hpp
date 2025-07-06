@@ -10,7 +10,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 // include filter algo
-#include "livox_sdk2_driver/filter/madgwick.hpp"
+#include "livox_sdk2_driver/filters/madgwick.hpp"
 
 class LivoxMid360Node : public rclcpp::Node
 {
