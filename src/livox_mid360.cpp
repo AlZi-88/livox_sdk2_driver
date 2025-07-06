@@ -220,11 +220,12 @@ void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)
     imu_msg.linear_acceleration.z = imu_data->acc_z;
 
     // Orientation is not provided by the MID360, so we set it to identity for now
-    // To Do: Implementation of orientation filter
-    imu_msg.orientation.x = 0.0;
-    imu_msg.orientation.y = 0.0;
-    imu_msg.orientation.z = 0.0;
-    imu_msg.orientation.w = 1.0;
+    madgwick_filter_.update(imu_msg); // Update the filter with the new IMU data
+    Eigen::Quaterniond orientation = madgwick_filter_.getOrientation();
+    imu_msg.orientation.x = orientation.x();
+    imu_msg.orientation.y = orientation.y();
+    imu_msg.orientation.z = orientation.z();
+    imu_msg.orientation.w = orientation.w();
 
     std::lock_guard<std::mutex> lock(imu_buffer_mutex_);
     // Store the IMU data in a buffer for later processing

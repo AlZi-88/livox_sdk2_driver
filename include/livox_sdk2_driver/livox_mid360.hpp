@@ -9,6 +9,8 @@
 // include of Eigen library for PointCloud transformation
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+// include filter algo
+#include "livox_sdk2_driver/filter/madgwick.hpp"
 
 class LivoxMid360Node : public rclcpp::Node
 {
@@ -51,7 +53,7 @@ private:
     std::deque<sensor_msgs::msg::Imu> imu_buffer_; // Buffer to store IMU data
     std::mutex imu_buffer_mutex_; // Mutex to protect the IMU buffer
 
-    
+    MadgwickFilter madgwick_filter_; // Instance of the Madgwick filter for orientation estimation
 
   // SDK callbacks and helpers...
 };

@@ -3,9 +3,10 @@
 <package format="3">
   <name>livox_sdk2_driver</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Livox MID-360 ROS 2 Driver with internal Madgwick Filter for IMU orientation fusion.</description>
   <maintainer email="drone@todo.todo">drone</maintainer>
-  <license>TODO: License declaration</license>
+  <license>MIT</license>
+  <depend>eigen</depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
