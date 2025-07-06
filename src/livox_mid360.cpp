@@ -240,6 +240,9 @@ bool LivoxMid360Node::InitSDK()
 {
   RCLCPP_INFO(this->get_logger(), "Initializing Livox SDK...");
   // Initialize the SDK and set up the device
+  // Set log level before initialization
+  SetLivoxSdkLoggerLevel(LivoxLogLevel::kLivoxLogLevelError); 
+  
   if (!LivoxLidarSdkInit(config_file_path_.c_str())) {
     RCLCPP_ERROR(this->get_logger(), "Failed to initialize Livox SDK.");
     LivoxLidarSdkUninit();
