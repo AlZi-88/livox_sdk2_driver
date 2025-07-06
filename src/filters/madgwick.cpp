@@ -10,7 +10,7 @@ void MadgwickFilter::update(const sensor_msgs::msg::Imu& imu_msg) {
         return; // Skip the first update
     }
 
-    double dt = (imu_msg.header.stamp - last_update_).seconds();
+    double dt = (rclcpp::Time(imu_msg.header.stamp) - last_update_).seconds();
     last_update_ = imu_msg.header.stamp;
 
     Eigen::Vector3d gyro(imu_msg.angular_velocity.x, imu_msg.angular_velocity.y, imu_msg.angular_velocity.z);

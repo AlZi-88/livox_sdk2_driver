@@ -245,20 +245,22 @@ Eigen::Quaterniond LivoxMid360Node::InterpolateIMUOrientation(const rclcpp::Time
   // For now, we return an identity quaternion as a placeholder.
   std::lock_guard<std::mutex> lock(imu_buffer_mutex_); // Lock the buffer to safely access it
 
-  if (imu_buffer.size() < 2) {
+  if (imu_buffer_.size() < 2) {
     return Eigen::Quaterniond::Identity(); // Return identity quaternion if not enough data
   }
 
   for (size_t i = 0; i < imu_buffer_.size() - 1; ++i) {
     const auto& imu1 = imu_buffer_[i];
     const auto& imu2 = imu_buffer_[i + 1];
-
-    if (imu1.header.stamp <= timestamp && imu2.header.stamp >= timestamp) {
+    rclcpp::Time t1(imu1.header.stamp.sec, imu1.header.stamp.nanosec, RCL_ROS_TIME);
+    rclcpp::Time t2(imu2.header.stamp.sec, imu2.header.stamp.nanosec, RCL_ROS_TIME);
+    if (t1 <= timestamp && t2 >= timestamp) {
       // Interpolate between imu1 and imu2
-      double ratio = (timestamp - imu1.header.stamp).seconds() / (imu2.header.stamp - imu1.header.stamp).seconds();
+      double ratio = (timestamp - t1).seconds() / (t2 - t1).seconds();
       Eigen::Quaterniond q1(imu1.orientation.w, imu1.orientation.x, imu1.orientation.y, imu1.orientation.z);
       Eigen::Quaterniond q2(imu2.orientation.w, imu2.orientation.x, imu2.orientation.y, imu2.orientation.z);
       return q1.slerp(ratio, q2); // Spherical linear interpolation
+    }
     }
   }
   const auto& last_imu = imu_buffer_.back();
