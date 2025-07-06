@@ -18,6 +18,10 @@ public:
     void PublishPointCloudData();
     void ConvertToPointCloud2(LivoxLidarEthernetPacket* data);
     void ConvertToIMUData(LivoxLidarEthernetPacket* data);
+    bool IsPointCloudDataError() const { return pt_cloud_data_error_; }
+    bool IsImuDataError() const { return imu_data_error_; }
+    void SetPointCloudDataError(bool error) { pt_cloud_data_error_ = error; }
+    void SetImuDataError(bool error) { imu_data_error_ = error; }
   
 private:
 
