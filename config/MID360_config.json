@@ -1,4 +1,5 @@
 {
+    "log_level": "error",
     "MID360": {
             "lidar_net_info" : {
                     "cmd_data_port": 56100,
