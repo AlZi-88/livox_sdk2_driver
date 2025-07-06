@@ -5,7 +5,7 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='livox_sdk2_driver',
-            executable='livox_mid360_node',
+            executable='livox_mid36',
             name='livox_mid360',
             output='screen',
             parameters=[
