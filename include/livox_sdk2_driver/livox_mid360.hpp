@@ -6,6 +6,7 @@
 // #include Livox SDK headers
 #include "livox_lidar_def.h"
 #include "livox_lidar_api.h"
+#include "livox_sdk_common.h"
 
 class LivoxMid360Node : public rclcpp::Node
 {
