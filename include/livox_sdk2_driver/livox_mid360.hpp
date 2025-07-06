@@ -6,6 +6,9 @@
 // #include Livox SDK headers
 #include "livox_lidar_def.h"
 #include "livox_lidar_api.h"
+// include of Eigen library for PointCloud transformation
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 class LivoxMid360Node : public rclcpp::Node
 {
@@ -26,6 +29,7 @@ public:
 private:
 
     bool InitSDK();
+    Eigen::Quaterniond InterpolateIMUOrientation(const rclcpp::Time& timestamp);
 
 
     std::string pointcloud_topic_;
@@ -43,6 +47,11 @@ private:
     std::shared_ptr<sensor_msgs::msg::PointCloud2> latest_pc_msg_;
     std::shared_ptr<sensor_msgs::msg::Imu> latest_imu_msg_;
     std::mutex data_mutex_; 
+
+    std::deque<sensor_msgs::msg::Imu> imu_buffer_; // Buffer to store IMU data
+    std::mutex imu_buffer_mutex_; // Mutex to protect the IMU buffer
+
+    
 
   // SDK callbacks and helpers...
 };

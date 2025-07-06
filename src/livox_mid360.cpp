@@ -210,7 +210,7 @@ void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)
     LivoxLidarImuRawPoint* imu_data = (LivoxLidarImuRawPoint*)data->data;
     // Process IMU data
     sensor_msgs::msg::Imu imu_msg;
-    imu_msg.header.stamp = rclcpp::Clock().now();
+    imu_msg.header.stamp = rclcpp::Clock().now(); //No hardware timestamp available, use current time
     imu_msg.header.frame_id = "mid360_imu_frame";
     imu_msg.angular_velocity.x = imu_data->gyro_x;
     imu_msg.angular_velocity.y = imu_data->gyro_y;
@@ -219,9 +219,51 @@ void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)
     imu_msg.linear_acceleration.y = imu_data->acc_y;
     imu_msg.linear_acceleration.z = imu_data->acc_z;
 
-    std::lock_guard<std::mutex> lock(data_mutex_);
+    // Orientation is not provided by the MID360, so we set it to identity for now
+    // To Do: Implementation of orientation filter
+    imu_msg.orientation.x = 0.0;
+    imu_msg.orientation.y = 0.0;
+    imu_msg.orientation.z = 0.0;
+    imu_msg.orientation.w = 1.0;
+
+    std::lock_guard<std::mutex> lock(imu_buffer_mutex_);
+    // Store the IMU data in a buffer for later processing
+    imu_buffer_.emplace_back(imu_msg);
+    while (imu_buffer_.size() > 200) { // Limit buffer size to prevent memory overflow
+      imu_buffer_.pop_front();
+    }
+    std::lock_guard<std::mutex> data_lock(data_mutex_);
     latest_imu_msg_ = std::make_shared<sensor_msgs::msg::Imu>(imu_msg);
   }
+}
+
+Eigen::Quaterniond LivoxMid360Node::InterpolateIMUOrientation(const rclcpp::Time& timestamp)
+{
+  // This function should implement the logic to interpolate the IMU orientation
+  // based on the timestamp and the available IMU data in the buffer.
+  // For now, we return an identity quaternion as a placeholder.
+  std::lock_guard<std::mutex> lock(imu_buffer_mutex_); // Lock the buffer to safely access it
+
+  if (imu_buffer.size() < 2) {
+    return Eigen::Quaterniond::Identity(); // Return identity quaternion if not enough data
+  }
+
+  for (size_t i = 0; i < imu_buffer_.size() - 1; ++i) {
+    const auto& imu1 = imu_buffer_[i];
+    const auto& imu2 = imu_buffer_[i + 1];
+
+    if (imu1.header.stamp <= timestamp && imu2.header.stamp >= timestamp) {
+      // Interpolate between imu1 and imu2
+      double ratio = (timestamp - imu1.header.stamp).seconds() / (imu2.header.stamp - imu1.header.stamp).seconds();
+      Eigen::Quaterniond q1(imu1.orientation.w, imu1.orientation.x, imu1.orientation.y, imu1.orientation.z);
+      Eigen::Quaterniond q2(imu2.orientation.w, imu2.orientation.x, imu2.orientation.y, imu2.orientation.z);
+      return q1.slerp(ratio, q2); // Spherical linear interpolation
+    }
+  }
+  const auto& last_imu = imu_buffer_.back();
+  return Eigen::Quaterniond(last_imu.orientation.w, last_imu.orientation.x, last_imu.orientation.y, last_imu.orientation.z);
+  // If no suitable interpolation found, return the last known orientation
+  // This is a fallback and may not be ideal for all applications.
 }
 
 void LivoxMid360Node::PublishImuData()
