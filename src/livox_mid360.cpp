@@ -43,6 +43,19 @@ LivoxMid360Node::~LivoxMid360Node()
   LivoxLidarSdkUninit();
 }
 
+uint64_t LivoxMid360Node::ParseTimestamp(const uint8_t* timestamp_field)
+{
+  uint64_t timestamp_ns = 0;
+  // Parse the timestamp from the data packet
+  if (timestamp_field == nullptr) {
+    RCLCPP_ERROR(this->get_logger(), "Timestamp field is null.");
+    return 0;
+  }
+  std::memcpy(&timestamp_ns, timestamp_field, sizeof(uint64_t));
+  return timestamp_ns;
+}
+
+
 void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEthernetPacket* data, void* client_data)
 {
     // Register client
@@ -72,7 +85,7 @@ void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
 
   if (latest_pc_msg_.data.empty()) {
     latest_pc_msg_.header.frame_id = "mid360_frame";
-    uint64_t sensor_timestamp_ns = *reinterpret_cast<uint64_t*>(data->timestamp[0]);
+    uint64_t sensor_timestamp_ns = ParseTimestamp(data->timestamp);
     latest_pc_msg_.header.stamp = rclcpp::Time(sensor_timestamp_ns);
     latest_pc_msg_.height = 1; // Point cloud is unorganized
   }
@@ -134,7 +147,7 @@ void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
 
     if (latest_pc_msg_.data.empty()) {
       latest_pc_msg_.width = 0;
-      uint64_t sensor_timestamp_ns = *reinterpret_cast<uint64_t*>(data->timestamp[0]);
+      uint64_t sensor_timestamp_ns = ParseTimestamp(data->timestamp);
       latest_pc_msg_.header.stamp = rclcpp::Time(sensor_timestamp_ns);
       sensor_msgs::PointCloud2Modifier modifier(latest_pc_msg_);
       modifier.setPointCloud2Fields(4,
@@ -186,7 +199,7 @@ void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
 
     if (latest_pc_msg_.data.empty()) {
       latest_pc_msg_.width = 0;
-      uint64_t sensor_timestamp_ns = *reinterpret_cast<uint64_t*>(data->timestamp[0]);
+      uint64_t sensor_timestamp_ns = ParseTimestamp(data->timestamp);
       latest_pc_msg_.header.stamp = rclcpp::Time(sensor_timestamp_ns);
       sensor_msgs::PointCloud2Modifier modifier(latest_pc_msg_);
       modifier.setPointCloud2Fields(4,
@@ -271,7 +284,7 @@ void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)
     LivoxLidarImuRawPoint* imu_data = (LivoxLidarImuRawPoint*)data->data;
     // Process IMU data
     sensor_msgs::msg::Imu imu_msg;
-    uint64_t sensor_timestamp_ns = *reinterpret_cast<uint64_t*>(data->timestamp[0]);
+    uint64_t sensor_timestamp_ns = ParseTimestamp(data->timestamp);
     imu_msg.header.stamp = rclcpp::Time(sensor_timestamp_ns);
     imu_msg.header.frame_id = "mid360_imu_frame";
     imu_msg.angular_velocity.x = imu_data->gyro_x;

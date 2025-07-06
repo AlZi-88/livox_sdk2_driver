@@ -32,7 +32,7 @@ private:
 
     bool InitSDK();
     Eigen::Quaterniond InterpolateIMUOrientation(const rclcpp::Time& timestamp);
-
+    uint64_t ParseTimestamp(const uint8_t* timestamp_field);
 
     std::string pointcloud_topic_;
     std::string imu_topic_;
