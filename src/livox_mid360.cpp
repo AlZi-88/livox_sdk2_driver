@@ -72,7 +72,8 @@ void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
 
   if (latest_pc_msg_.data.empty()) {
     latest_pc_msg_.header.frame_id = "mid360_frame";
-    latest_pc_msg_.header.stamp = rclcpp::Clock().now();
+    uint64_t sensor_timestamp_ns = *reinterpret_cast<uint64_t*>(data->timestamp[0]);
+    latest_pc_msg_.header.stamp = rclcpp::Time(sensor_timestamp_ns);
     latest_pc_msg_.height = 1; // Point cloud is unorganized
   }
 
@@ -133,6 +134,8 @@ void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
 
     if (latest_pc_msg_.data.empty()) {
       latest_pc_msg_.width = 0;
+      uint64_t sensor_timestamp_ns = *reinterpret_cast<uint64_t*>(data->timestamp[0]);
+      latest_pc_msg_.header.stamp = rclcpp::Time(sensor_timestamp_ns);
       sensor_msgs::PointCloud2Modifier modifier(latest_pc_msg_);
       modifier.setPointCloud2Fields(4,
         "x", 1, sensor_msgs::msg::PointField::INT16,
@@ -183,6 +186,8 @@ void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
 
     if (latest_pc_msg_.data.empty()) {
       latest_pc_msg_.width = 0;
+      uint64_t sensor_timestamp_ns = *reinterpret_cast<uint64_t*>(data->timestamp[0]);
+      latest_pc_msg_.header.stamp = rclcpp::Time(sensor_timestamp_ns);
       sensor_msgs::PointCloud2Modifier modifier(latest_pc_msg_);
       modifier.setPointCloud2Fields(4,
         "depth", 1, sensor_msgs::msg::PointField::UINT32,
@@ -266,7 +271,8 @@ void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)
     LivoxLidarImuRawPoint* imu_data = (LivoxLidarImuRawPoint*)data->data;
     // Process IMU data
     sensor_msgs::msg::Imu imu_msg;
-    imu_msg.header.stamp = rclcpp::Clock().now(); //No hardware timestamp available, use current time
+    uint64_t sensor_timestamp_ns = *reinterpret_cast<uint64_t*>(data->timestamp[0]);
+    imu_msg.header.stamp = rclcpp::Time(sensor_timestamp_ns);
     imu_msg.header.frame_id = "mid360_imu_frame";
     imu_msg.angular_velocity.x = imu_data->gyro_x;
     imu_msg.angular_velocity.y = imu_data->gyro_y;
