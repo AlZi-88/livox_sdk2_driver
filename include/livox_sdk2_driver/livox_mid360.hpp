@@ -46,7 +46,7 @@ private:
 
     rclcpp::TimerBase::SharedPtr pc_timer_;
     rclcpp::TimerBase::SharedPtr imu_timer_;
-    std::shared_ptr<sensor_msgs::msg::PointCloud2> latest_pc_msg_;
+    sensor_msgs::msg::PointCloud2 latest_pc_msg_;
     std::shared_ptr<sensor_msgs::msg::Imu> latest_imu_msg_;
     std::mutex data_mutex_; 
 

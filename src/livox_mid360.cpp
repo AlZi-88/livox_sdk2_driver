@@ -66,38 +66,59 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEther
 
 void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
 {  // Process point cloud data
-  sensor_msgs::msg::PointCloud2 pcl_msg;
+  // Removed local pcl_msg, use latest_pc_msg_ directly
 
-  //Modifier to describe what the fields are.
-  sensor_msgs::PointCloud2Modifier modifier(pcl_msg);
+  std::lock_guard<std::mutex> lock(data_mutex_);
 
-  pcl_msg.header.stamp = rclcpp::Clock().now();
-  pcl_msg.header.frame_id = "mid360_frame";
-  pcl_msg.height = 1; // Point cloud is unorganized
-  // Fill in the msg with point cloud data...
+  if (latest_pc_msg_.data.empty()) {
+    latest_pc_msg_.header.frame_id = "mid360_frame";
+    latest_pc_msg_.header.stamp = rclcpp::Clock().now();
+    latest_pc_msg_.height = 1; // Point cloud is unorganized
+  }
+
   if (data->data_type == kLivoxLidarCartesianCoordinateHighData) {
     LivoxLidarCartesianHighRawPoint *p_point_data = (LivoxLidarCartesianHighRawPoint *)data->data;
-    pcl_msg.width = data->dot_num;
-    modifier.setPointCloud2Fields(4,
-      "x", 1, sensor_msgs::msg::PointField::INT32,
-      "y", 1, sensor_msgs::msg::PointField::INT32,
-      "z", 1, sensor_msgs::msg::PointField::INT32,
-      "intensity", 1, sensor_msgs::msg::PointField::UINT8);
-    pcl_msg.is_dense = true;
-    pcl_msg.point_step = 13;
-    pcl_msg.row_step = pcl_msg.point_step * pcl_msg.width;
-    pcl_msg.data.resize(pcl_msg.row_step);
 
-    //Iterators for PointCloud msg
-    sensor_msgs::PointCloud2Iterator<int32_t> iterX(pcl_msg, "x");
-    sensor_msgs::PointCloud2Iterator<int32_t> iterY(pcl_msg, "y");
-    sensor_msgs::PointCloud2Iterator<int32_t> iterZ(pcl_msg, "z");
-    sensor_msgs::PointCloud2Iterator<uint8_t> iterIntensity(pcl_msg, "intensity");
-  
+    if (latest_pc_msg_.data.empty()) {
+      latest_pc_msg_.width = 0;
+      sensor_msgs::PointCloud2Modifier modifier(latest_pc_msg_);
+      modifier.setPointCloud2Fields(4,
+        "x", 1, sensor_msgs::msg::PointField::INT32,
+        "y", 1, sensor_msgs::msg::PointField::INT32,
+        "z", 1, sensor_msgs::msg::PointField::INT32,
+        "intensity", 1, sensor_msgs::msg::PointField::UINT8);
+      latest_pc_msg_.is_dense = true;
+      latest_pc_msg_.point_step = 13;
+    }
+
+    size_t old_size = latest_pc_msg_.data.size();
+    latest_pc_msg_.width += data->dot_num;
+    latest_pc_msg_.row_step = latest_pc_msg_.width * latest_pc_msg_.point_step;
+    latest_pc_msg_.data.resize(latest_pc_msg_.row_step);
+
+    Eigen::Quaterniond orientation = InterpolateIMUOrientation(rclcpp::Time(latest_pc_msg_.header.stamp));
+
+    //Iterators for PointCloud msg, offset by old_size
+    sensor_msgs::PointCloud2Iterator<int32_t> iterX(latest_pc_msg_, "x");
+    sensor_msgs::PointCloud2Iterator<int32_t> iterY(latest_pc_msg_, "y");
+    sensor_msgs::PointCloud2Iterator<int32_t> iterZ(latest_pc_msg_, "z");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iterIntensity(latest_pc_msg_, "intensity");
+
+    iterX += old_size / latest_pc_msg_.point_step;
+    iterY += old_size / latest_pc_msg_.point_step;
+    iterZ += old_size / latest_pc_msg_.point_step;
+    iterIntensity += old_size / latest_pc_msg_.point_step;
+
     for (uint32_t i = 0; i < data->dot_num; i++) {
-      *iterX = (p_point_data[i].x);
-      *iterY = (p_point_data[i].y);
-      *iterZ = (p_point_data[i].z);
+      Eigen::Vector3d raw_point(
+        p_point_data[i].x,
+        p_point_data[i].y,
+        p_point_data[i].z);
+      Eigen::Vector3d transformed_point = orientation.inverse() * raw_point;
+      *iterX = static_cast<int32_t>(transformed_point.x()); // in m
+      *iterY = static_cast<int32_t>(transformed_point.y()); // in m
+      *iterZ = static_cast<int32_t>(transformed_point.z()); // in m
+      // Reflectivity is stored as intensity
       *iterIntensity = (p_point_data[i].reflectivity);
 
       // Increment the iterators
@@ -109,25 +130,46 @@ void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
   }
   else if (data->data_type == kLivoxLidarCartesianCoordinateLowData) {
     LivoxLidarCartesianLowRawPoint *p_point_data = (LivoxLidarCartesianLowRawPoint *)data->data;
-    pcl_msg.width = data->dot_num;
-    modifier.setPointCloud2Fields(4,
-      "x", 1, sensor_msgs::msg::PointField::INT16,
-      "y", 1, sensor_msgs::msg::PointField::INT16,
-      "z", 1, sensor_msgs::msg::PointField::INT16,
-      "intensity", 1, sensor_msgs::msg::PointField::UINT8);
-    pcl_msg.is_dense = true;
-    pcl_msg.point_step = 7;
-    pcl_msg.row_step = pcl_msg.point_step * pcl_msg.width;
-    pcl_msg.data.resize(pcl_msg.row_step);
-    //Iterators for PointCloud msg
-    sensor_msgs::PointCloud2Iterator<int16_t> iterX(pcl_msg, "x");
-    sensor_msgs::PointCloud2Iterator<int16_t> iterY(pcl_msg, "y");
-    sensor_msgs::PointCloud2Iterator<int16_t> iterZ(pcl_msg, "z");
-    sensor_msgs::PointCloud2Iterator<int8_t> iterIntensity(pcl_msg, "intensity");
+
+    if (latest_pc_msg_.data.empty()) {
+      latest_pc_msg_.width = 0;
+      sensor_msgs::PointCloud2Modifier modifier(latest_pc_msg_);
+      modifier.setPointCloud2Fields(4,
+        "x", 1, sensor_msgs::msg::PointField::INT16,
+        "y", 1, sensor_msgs::msg::PointField::INT16,
+        "z", 1, sensor_msgs::msg::PointField::INT16,
+        "intensity", 1, sensor_msgs::msg::PointField::UINT8);
+      latest_pc_msg_.is_dense = true;
+      latest_pc_msg_.point_step = 7;
+    }
+
+    size_t old_size = latest_pc_msg_.data.size();
+    latest_pc_msg_.width += data->dot_num;
+    latest_pc_msg_.row_step = latest_pc_msg_.width * latest_pc_msg_.point_step;
+    latest_pc_msg_.data.resize(latest_pc_msg_.row_step);
+
+    Eigen::Quaterniond orientation = InterpolateIMUOrientation(rclcpp::Time(latest_pc_msg_.header.stamp));
+    //Iterators for PointCloud msg, offset by old_size
+    sensor_msgs::PointCloud2Iterator<int16_t> iterX(latest_pc_msg_, "x");
+    sensor_msgs::PointCloud2Iterator<int16_t> iterY(latest_pc_msg_, "y");
+    sensor_msgs::PointCloud2Iterator<int16_t> iterZ(latest_pc_msg_, "z");
+    sensor_msgs::PointCloud2Iterator<int8_t> iterIntensity(latest_pc_msg_, "intensity");
+
+    iterX += old_size / latest_pc_msg_.point_step;
+    iterY += old_size / latest_pc_msg_.point_step;
+    iterZ += old_size / latest_pc_msg_.point_step;
+    iterIntensity += old_size / latest_pc_msg_.point_step;
+
     for (uint32_t i = 0; i < data->dot_num; i++) {
-      *iterX = (p_point_data[i].x);
-      *iterY = (p_point_data[i].y);
-      *iterZ = (p_point_data[i].z);
+      Eigen::Vector3d raw_point(
+        p_point_data[i].x,
+        p_point_data[i].y,
+        p_point_data[i].z);
+      Eigen::Vector3d transformed_point = orientation.inverse() * raw_point;
+      *iterX = static_cast<int16_t>(transformed_point.x()); // in m
+      *iterY = static_cast<int16_t>(transformed_point.y()); // in m
+      *iterZ = static_cast<int16_t>(transformed_point.z()); // in m
+      // Reflectivity is stored as intensity
       *iterIntensity = (p_point_data[i].reflectivity);
 
       // Increment the iterators
@@ -138,21 +180,35 @@ void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
     }
   } else if (data->data_type == kLivoxLidarSphericalCoordinateData) {
     LivoxLidarSpherPoint* p_point_data = (LivoxLidarSpherPoint *)data->data;
-    pcl_msg.width = data->dot_num;
-    modifier.setPointCloud2Fields(4,
-      "depth", 1, sensor_msgs::msg::PointField::UINT32,
-      "theta", 1, sensor_msgs::msg::PointField::UINT16,
-      "phi", 1, sensor_msgs::msg::PointField::UINT16,
-      "reflectivity", 1, sensor_msgs::msg::PointField::UINT8);
-    pcl_msg.is_dense = true;
-    pcl_msg.point_step = 9;
-    pcl_msg.row_step = pcl_msg.point_step * pcl_msg.width;
-    pcl_msg.data.resize(pcl_msg.row_step);
-    //Iterators for PointCloud msg
-    sensor_msgs::PointCloud2Iterator<uint32_t> iterDepth(pcl_msg, "depth");
-    sensor_msgs::PointCloud2Iterator<uint16_t> iterTheta(pcl_msg, "theta");
-    sensor_msgs::PointCloud2Iterator<uint16_t> iterPhi(pcl_msg, "phi");
-    sensor_msgs::PointCloud2Iterator<uint8_t> iterReflectivity(pcl_msg, "reflectivity");
+
+    if (latest_pc_msg_.data.empty()) {
+      latest_pc_msg_.width = 0;
+      sensor_msgs::PointCloud2Modifier modifier(latest_pc_msg_);
+      modifier.setPointCloud2Fields(4,
+        "depth", 1, sensor_msgs::msg::PointField::UINT32,
+        "theta", 1, sensor_msgs::msg::PointField::UINT16,
+        "phi", 1, sensor_msgs::msg::PointField::UINT16,
+        "reflectivity", 1, sensor_msgs::msg::PointField::UINT8);
+      latest_pc_msg_.is_dense = true;
+      latest_pc_msg_.point_step = 9;
+    }
+
+    size_t old_size = latest_pc_msg_.data.size();
+    latest_pc_msg_.width += data->dot_num;
+    latest_pc_msg_.row_step = latest_pc_msg_.width * latest_pc_msg_.point_step;
+    latest_pc_msg_.data.resize(latest_pc_msg_.row_step);
+
+    //Iterators for PointCloud msg, offset by old_size
+    sensor_msgs::PointCloud2Iterator<uint32_t> iterDepth(latest_pc_msg_, "depth");
+    sensor_msgs::PointCloud2Iterator<uint16_t> iterTheta(latest_pc_msg_, "theta");
+    sensor_msgs::PointCloud2Iterator<uint16_t> iterPhi(latest_pc_msg_, "phi");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iterReflectivity(latest_pc_msg_, "reflectivity");
+
+    iterDepth += old_size / latest_pc_msg_.point_step;
+    iterTheta += old_size / latest_pc_msg_.point_step;
+    iterPhi += old_size / latest_pc_msg_.point_step;
+    iterReflectivity += old_size / latest_pc_msg_.point_step;
+
     for (uint32_t i = 0; i < data->dot_num; i++) {
       *iterDepth = (p_point_data[i].depth);
       *iterTheta = (p_point_data[i].theta);
@@ -166,16 +222,16 @@ void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
       ++iterReflectivity;
     }
   }  
-  std::lock_guard<std::mutex> lock(data_mutex_);
-  latest_pc_msg_ = std::make_shared<sensor_msgs::msg::PointCloud2>(pcl_msg);
-  }
+}
 
 void LivoxMid360Node::PublishPointCloudData()
 {
   std::lock_guard<std::mutex> lock(data_mutex_);
-  if (latest_pc_msg_) {
-    ptcloud_pub_->publish(*latest_pc_msg_);
-    latest_pc_msg_.reset(); // Reset the pointer after publishing
+  if (!latest_pc_msg_.data.empty()) {
+    ptcloud_pub_->publish(latest_pc_msg_);
+    latest_pc_msg_.data.clear();
+    latest_pc_msg_.width = 0;
+    latest_pc_msg_.row_step = 0;
   }
   else {
     RCLCPP_WARN(this->get_logger(), "No point cloud data available to publish.");
