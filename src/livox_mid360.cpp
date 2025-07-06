@@ -261,7 +261,6 @@ Eigen::Quaterniond LivoxMid360Node::InterpolateIMUOrientation(const rclcpp::Time
       Eigen::Quaterniond q2(imu2.orientation.w, imu2.orientation.x, imu2.orientation.y, imu2.orientation.z);
       return q1.slerp(ratio, q2); // Spherical linear interpolation
     }
-    }
   }
   const auto& last_imu = imu_buffer_.back();
   return Eigen::Quaterniond(last_imu.orientation.w, last_imu.orientation.x, last_imu.orientation.y, last_imu.orientation.z);
