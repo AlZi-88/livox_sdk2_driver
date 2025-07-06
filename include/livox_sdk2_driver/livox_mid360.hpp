@@ -7,8 +7,8 @@
 #include "livox_lidar_def.h"
 #include "livox_lidar_api.h"
 // include of Eigen library for PointCloud transformation
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Geometry>
 // include filter algo
 #include "livox_sdk2_driver/filters/madgwick.hpp"
 

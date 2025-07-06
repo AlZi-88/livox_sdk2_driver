@@ -1,8 +1,8 @@
 // madgwick.hpp
 #pragma once
 #include <rclcpp/time.hpp>
-#include <Eigen/Dense>
-#include <Eigen/Geometry>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Geometry>
 #include "sensor_msgs/msg/imu.hpp"
 
 class MadgwickFilter {
