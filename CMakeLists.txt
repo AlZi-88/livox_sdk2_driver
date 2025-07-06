@@ -10,6 +10,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 # Link against Livox SDK
 find_library(LIVOX_LIDAR_SDK_STATIC livox_lidar_sdk_static PATHS /usr/local/lib)
@@ -27,6 +29,8 @@ ament_target_dependencies(
   "rclcpp"
   "sensor_msgs"
   "Eigen3"
+  "tf2"
+  "tf2_ros"
 )
 
 target_link_libraries(livox_mid360
