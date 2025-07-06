@@ -317,7 +317,7 @@ void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)
     sensor_msgs::msg::Imu imu_msg;
     uint64_t sensor_timestamp_ns = ParseTimestamp(data->timestamp);
     imu_msg.header.stamp = rclcpp::Time(sensor_timestamp_ns);
-    imu_msg.header.frame_id = "mid360_imu_frame";
+    imu_msg.header.frame_id = "mid360_frame";
     imu_msg.angular_velocity.x = imu_data->gyro_x;
     imu_msg.angular_velocity.y = imu_data->gyro_y;
     imu_msg.angular_velocity.z = imu_data->gyro_z;
