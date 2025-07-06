@@ -1,5 +1,5 @@
 // madgwick.cpp
-#include "livox_sdk2_driver/filters/madgwick_filter.hpp"
+#include "livox_sdk2_driver/filters/madgwick.hpp"
 
 MadgwickFilter::MadgwickFilter(double beta) : q_(Eigen::Quaterniond::Identity()), beta_(beta) {}
 
