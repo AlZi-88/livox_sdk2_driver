@@ -19,6 +19,9 @@ LivoxMid360Node::LivoxMid360Node(): Node("livox_mid360_node")
   pc_freq_ = this->get_parameter("ptcloud_publish_rate").as_double();
   imu_freq_ = this->get_parameter("imu_publish_rate").as_double();
 
+  pt_cloud_data_error_ = false;
+  imu_data_error_ = false;
+
   ptcloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(pointcloud_topic_, 10);
   imu_pub_ = this->create_publisher<sensor_msgs::msg::Imu>(imu_topic_, 10);
 
@@ -43,7 +46,10 @@ LivoxMid360Node::~LivoxMid360Node()
 void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEthernetPacket* data, void* client_data)
 {
   if (data == nullptr) {
-    RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Received null data.");
+    if (!pt_cloud_data_error_) {
+      RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Received null data. This may indicate a connection issue or misconfiguration.");
+      pt_cloud_data_error_ = true; // Avoid flooding the logs with the same error
+    }
     return;
   }
   // Register client
@@ -53,6 +59,7 @@ void PointCloudCallback(uint32_t handle, const uint8_t dev_type, LivoxLidarEther
     return;
   }
   node->ConvertToPointCloud2(data);
+  pt_cloud_data_error_ = false; // Reset error flag if data is valid
 }
 
 void LivoxMid360Node::ConvertToPointCloud2(LivoxLidarEthernetPacket* data)
@@ -175,7 +182,11 @@ void LivoxMid360Node::PublishPointCloudData()
 void ImuCallback(uint32_t handle, const uint8_t dev_type,  LivoxLidarEthernetPacket* data, void* client_data)
 {
   if (data == nullptr) {
-    RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Received null IMU data.");
+    if (!imu_data_error_) {
+      // Log an error message only once to avoid flooding the logs
+      RCLCPP_ERROR(rclcpp::get_logger("livox_mid360"), "Received null IMU data.");
+      imu_data_error_ = true; // Avoid flooding the logs with the same error
+    }
     return;
   }
   // Register client
@@ -187,6 +198,7 @@ void ImuCallback(uint32_t handle, const uint8_t dev_type,  LivoxLidarEthernetPac
   }
 
   node->ConvertToIMUData(data);
+  imu_data_error_ = false; // Reset error flag if data is valid
 }
 
 void LivoxMid360Node::ConvertToIMUData(LivoxLidarEthernetPacket* data)

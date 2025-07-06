@@ -29,6 +29,8 @@ private:
     std::string config_file_path_;
     double pc_freq_;
     double imu_freq_;
+    bool pt_cloud_data_error_;
+    bool imu_data_error_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr ptcloud_pub_;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
 
